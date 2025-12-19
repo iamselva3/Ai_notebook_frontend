@@ -2,26 +2,26 @@ import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import { toast } from "react-toastify";
 
-type NoteFormProps = {
+type Props = {
+  draftContent: string;
+  onContentChange: (v: string) => void;
+  onSummarize: () => void;
+  aiLoading: boolean;
   onCreated: () => void;
-  onContentChange: (content: string) => void;
 };
 
 export default function NoteForm({
-  onCreated,
+  draftContent,
   onContentChange,
-}: NoteFormProps) {
+  onSummarize,
+  aiLoading,
+  onCreated,
+}: Props) {
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleContentChange = (value: string) => {
-    setContent(value);
-    onContentChange(value); // 🔑 expose draft content to Dashboard
-  };
-
   const submit = async () => {
-    if (!title.trim() || !content.trim()) {
+    if (!title.trim() || !draftContent.trim()) {
       toast.warning("Title and content are required");
       return;
     }
@@ -31,17 +31,16 @@ export default function NoteForm({
 
       await apiFetch("/notes", {
         method: "POST",
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ title, content: draftContent }),
       });
 
-      toast.success("Note created successfully");
+      toast.success("Note saved");
 
       setTitle("");
-      setContent("");
-      onContentChange(""); // reset AI preview
+      onContentChange("");
       onCreated();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create note");
+      toast.error(err.message || "Failed to save note");
     } finally {
       setLoading(false);
     }
@@ -51,30 +50,36 @@ export default function NoteForm({
     <div>
       <h3 className="text-xl font-semibold mb-4">Create Note</h3>
 
-      <div className="space-y-4">
-        <input
-          className="w-full p-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+      <input
+        className="w-full mb-3 p-2 border rounded"
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
 
-        <textarea
-          className="w-full min-h-[120px] p-2 border rounded resize-none focus:outline-none focus:ring focus:ring-blue-200"
-          placeholder="Write your note..."
-          value={content}
-          onChange={(e) => handleContentChange(e.target.value)}
-        />
+      <textarea
+        className="w-full min-h-[140px] p-2 border rounded resize-none"
+        placeholder="Write your note..."
+        value={draftContent}
+        onChange={(e) => onContentChange(e.target.value)}
+      />
 
-        <div className="flex justify-end">
-          <button
-            onClick={submit}
-            disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Save Note"}
-          </button>
-        </div>
+      <div className="flex justify-between mt-3">
+        <button
+          onClick={onSummarize}
+          disabled={aiLoading}
+          className="text-sm bg-purple-600 text-white px-3 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+        >
+          {aiLoading ? "Summarizing..." : "Summarize"}
+        </button>
+
+        <button
+          onClick={submit}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? "Saving..." : "Save Note"}
+        </button>
       </div>
     </div>
   );
