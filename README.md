@@ -63,3 +63,8 @@ TypeScript
 Tailwind CSS
 
 React Toastify
+
+
+***RUN COMMENT***
+
+npm run build && npm run dev
