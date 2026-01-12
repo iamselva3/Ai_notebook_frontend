@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+📝 AI Notebook – Full Stack Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack AI-powered note-taking application built with Hono.js, MongoDB, JWT authentication, and Typescript (Vite).
+Users can create notes, view them securely, and generate AI summaries using an external LLM provider.
 
-Currently, two official plugins are available:
+🚀 Features
+🔐 Authentication
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+User registration and login
 
-## React Compiler
+JWT-based authentication
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Protected routes for authenticated users only
 
-## Expanding the ESLint configuration
+🗒️ Notes Management
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Create notes with title and content
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+View all saved notes for the logged-in user
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Notes are user-scoped (data isolation)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+🤖 AI Integration
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Summarize notes using AI
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+AI summary available:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Before saving (draft summarization)
+
+After saving (per-note summarization)
+
+Uses OpenRouter (Mistral 7B) for LLM inference
+
+🎨 Frontend UX
+
+Built with Typescript + Vite
+
+Styled using Tailwind CSS
+
+Toast notifications for success/error feedback
+
+Clean and responsive UI
+
+🛠️ Tech Stack
+Backend
+
+Hono.js – lightweight backend framework
+
+Node.js
+
+MongoDB + Mongoose
+
+JWT for authentication
+
+OpenRouter API for AI summaries
+
+Frontend
+
+
+TypeScript
+
+Tailwind CSS
+
+React Toastify
+
+
+***RUN COMMENT***
+
+npm run build && npm run dev
