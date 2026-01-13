@@ -183,7 +183,7 @@ export default function Dashboard() {
             ) : (
               <div className="flex-1 overflow-y-auto aurora-scrollbar">
                 <div className="pr-2">
-                  <NotesList notes={notes} />
+                  <NotesList notes={notes} onUpdate={loadNotes} />
                 </div>
               </div>
             )}

@@ -9,10 +9,14 @@ type Note = {
   createdAt?: string;
 };
 
-export default function NotesList({ notes }: { notes: Note[] }) {
+export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate: () => void }) {
   const [summaries, setSummaries] = useState<Record<string, string>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
 
   const toggleExpand = (noteId: string) => {
     setExpandedNotes(prev => ({
@@ -50,6 +54,68 @@ export default function NotesList({ notes }: { notes: Note[] }) {
     }
   };
 
+  const startEdit = (note: Note) => {
+    setEditingNoteId(note._id);
+    setEditTitle(note.title);
+    setEditContent(note.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingNoteId(null);
+    setEditTitle("");
+    setEditContent("");
+  };
+
+  const saveEdit = async (noteId: string) => {
+    if (!editTitle.trim() || !editContent.trim()) {
+      toast.warning("Title and content are required");
+      return;
+    }
+
+    try {
+      setLoadingId(noteId);
+      
+      await apiFetch(`/notes/${noteId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          content: editContent.trim(),
+        }),
+      });
+
+      toast.success("Note updated successfully");
+      setEditingNoteId(null);
+      setEditTitle("");
+      setEditContent("");
+      onUpdate(); // Refresh the notes list
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update note");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const deleteNote = async (noteId: string) => {
+    if (!window.confirm("Are you sure you want to delete this note?")) {
+      return;
+    }
+
+    try {
+      setDeletingNoteId(noteId);
+      
+      await apiFetch(`/notes/${noteId}`, {
+        method: "DELETE",
+      });
+
+      toast.success("Note deleted successfully");
+      onUpdate(); // Refresh the notes list
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete note");
+    } finally {
+      setDeletingNoteId(null);
+    }
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -76,7 +142,6 @@ export default function NotesList({ notes }: { notes: Note[] }) {
 
   return (
     <div className="space-y-4">
-
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-bold text-white">Your Notes</h3>
         <div className="text-white/60 text-sm">
@@ -84,10 +149,10 @@ export default function NotesList({ notes }: { notes: Note[] }) {
         </div>
       </div>
 
-      
       <div className="space-y-4">
         {notes.map((note, index) => {
           const isExpanded = expandedNotes[note._id];
+          const isEditing = editingNoteId === note._id;
           const displayContent = isExpanded 
             ? note.content 
             : note.content.length > 150 
@@ -102,94 +167,182 @@ export default function NotesList({ notes }: { notes: Note[] }) {
               key={note._id}
               className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4"
             >
-              
+              {/* Note Header */}
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-400"></div>
-                    <h4 className="text-lg font-bold text-white truncate">
-                      {note.title}
-                    </h4>
+                    {isEditing ? (
+                      <input
+                        className="text-lg font-bold text-white bg-white/10 border border-white/20 rounded px-2 py-1 w-full focus:outline-none focus:border-blue-400"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Note title"
+                      />
+                    ) : (
+                      <h4 className="text-lg font-bold text-white truncate">
+                        {note.title}
+                      </h4>
+                    )}
                   </div>
-                  {note.createdAt && (
+                  {note.createdAt && !isEditing && (
                     <div className="text-xs text-white/50">
                       {formatDate(note.createdAt)}
                     </div>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded">
-                    {note.content.split(/\s+/).filter(Boolean).length} words
-                  </span>
+                  {!isEditing && (
+                    <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded">
+                      {note.content.split(/\s+/).filter(Boolean).length} words
+                    </span>
+                  )}
                   <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
                     #{index + 1}
                   </span>
                 </div>
               </div>
 
-              
-              <div className={`mb-3 ${hasSummary ? 'max-h-[100px] overflow-hidden' : ''}`}>
-                <p className="text-white/80 text-sm whitespace-pre-wrap">
-                  {displayContent}
-                </p>
-                {note.content.length > 150 && !hasSummary && (
-                  <button
-                    onClick={() => toggleExpand(note._id)}
-                    className="text-blue-300 hover:text-blue-200 text-xs mt-1 inline-flex items-center gap-1 transition-colors duration-150"
-                  >
-                    {isExpanded ? 'Show less' : 'Read more'}
-                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+              {/* Note Content */}
+              <div className={`mb-3 ${hasSummary && !isEditing ? 'max-h-[100px] overflow-hidden' : ''}`}>
+                {isEditing ? (
+                  <textarea
+                    className="w-full min-h-[120px] p-2 bg-white/10 border border-white/20 rounded text-white placeholder-white/50 focus:outline-none focus:border-blue-400 resize-none"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    placeholder="Note content..."
+                  />
+                ) : (
+                  <>
+                    <p className="text-white/80 text-sm whitespace-pre-wrap">
+                      {displayContent}
+                    </p>
+                    {note.content.length > 150 && !hasSummary && (
+                      <button
+                        onClick={() => toggleExpand(note._id)}
+                        className="text-blue-300 hover:text-blue-200 text-xs mt-1 inline-flex items-center gap-1 transition-colors duration-150"
+                      >
+                        {isExpanded ? 'Show less' : 'Read more'}
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 
-              
+              {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-white/10">
-                <button
-                  onClick={() => summarize(note)}
-                  disabled={loadingId === note._id || !canSummarize}
-                  className={`
-                    flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 
-                    ${loadingId === note._id
-                      ? 'bg-purple-600/30 text-purple-300 cursor-wait'
-                      : canSummarize
-                        ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-purple-300 hover:text-purple-200 hover:from-purple-600/40 hover:to-indigo-600/40 border border-purple-500/30'
-                        : 'bg-gray-700/50 text-gray-400 border border-gray-600/30 cursor-not-allowed'
-                    }
-                  `}
-                >
-                  {loadingId === note._id ? (
-                    <>
-                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Summarize with AI
-                      {!canSummarize && (
-                        <span className="text-xs ml-1">(need 20 chars)</span>
+                {!isEditing ? (
+                  <>
+                    <button
+                      onClick={() => summarize(note)}
+                      disabled={loadingId === note._id || !canSummarize}
+                      className={`
+                        flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 
+                        ${loadingId === note._id
+                          ? 'bg-purple-600/30 text-purple-300 cursor-wait'
+                          : canSummarize
+                            ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-purple-300 hover:text-purple-200 hover:from-purple-600/40 hover:to-indigo-600/40 border border-purple-500/30'
+                            : 'bg-gray-700/50 text-gray-400 border border-gray-600/30 cursor-not-allowed'
+                        }
+                      `}
+                    >
+                      {loadingId === note._id ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Summarize with AI
+                          {!canSummarize && (
+                            <span className="text-xs ml-1">(need 20 chars)</span>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
-                </button>
+                    </button>
 
-                <button className="flex items-center gap-2 bg-white/5 text-white/70 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border border-white/10">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  Edit
-                </button>
+                    <button
+                      onClick={() => startEdit(note)}
+                      className="flex items-center gap-2 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-blue-300 hover:text-blue-200 hover:from-blue-600/30 hover:to-cyan-600/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border border-blue-500/30"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => deleteNote(note._id)}
+                      disabled={deletingNoteId === note._id}
+                      className="flex items-center gap-2 bg-gradient-to-r from-red-600/20 to-pink-600/20 text-red-300 hover:text-red-200 hover:from-red-600/30 hover:to-pink-600/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {deletingNoteId === note._id ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => saveEdit(note._id)}
+                      disabled={loadingId === note._id || !editTitle.trim() || !editContent.trim()}
+                      className="flex items-center gap-2 bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-300 hover:text-green-200 hover:from-green-600/30 hover:to-emerald-600/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingId === note._id ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Save
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={cancelEdit}
+                      className="flex items-center gap-2 bg-gradient-to-r from-gray-600/20 to-gray-700/20 text-gray-300 hover:text-gray-200 hover:from-gray-600/30 hover:to-gray-700/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 border border-gray-500/30"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cancel
+                    </button>
+                  </>
+                )}
               </div>
 
-              {hasSummary && (
+              {/* AI Summary Section */}
+              {hasSummary && !isEditing && (
                 <div className="mt-3 p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-400/20">
                   <div className="flex items-center gap-2 mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
