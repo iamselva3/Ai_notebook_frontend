@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { apiFetch } from "../lib/api";
 
-export default function AISummary({ content }: { content: string }) {
+export default function AISummary({ content }) {
   const [summary, setSummary] = useState("");
 
   const summarize = async () => {
-    const res = await apiFetch<any>("/deepai/summary", {
+    const res = await apiFetch("/deepai/summary", {
       method: "POST",
       body: JSON.stringify({ content }),
     });
@@ -20,4 +20,3 @@ export default function AISummary({ content }: { content: string }) {
     </div>
   );
 }
-

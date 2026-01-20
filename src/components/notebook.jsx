@@ -2,21 +2,13 @@ import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import { toast } from "react-toastify";
 
-type Props = {
-  draftContent: string;
-  onContentChange: (v: string) => void;
-  onSummarize: () => void;
-  aiLoading: boolean;
-  onCreated: () => void;
-};
-
 export default function NoteForm({
   draftContent,
   onContentChange,
   onSummarize,
   aiLoading,
   onCreated,
-}: Props) {
+}) {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +31,7 @@ export default function NoteForm({
       setTitle("");
       onContentChange("");
       onCreated();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to save note");
     } finally {
       setLoading(false);

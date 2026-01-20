@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const [notes, setNotes] = useState<any[]>([]);
+  const [notes, setNotes] = useState([]);
   const [draftContent, setDraftContent] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -15,9 +15,9 @@ export default function Dashboard() {
   const loadNotes = async () => {
     try {
       setLoading(true);
-      const data = await apiFetch<any[]>("/notes");
+      const data = await apiFetch("/notes");
       setNotes(data);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to load notes");
     } finally {
       setLoading(false);
@@ -38,7 +38,7 @@ export default function Dashboard() {
     try {
       setAiLoading(true);
 
-      const res = await apiFetch<any>("/deepai/summary", {
+      const res = await apiFetch("/deepai/summary", {
         method: "POST",
         body: JSON.stringify({ content: draftContent }),
       });
@@ -49,7 +49,7 @@ export default function Dashboard() {
         setDraftContent(summary);
         toast.success("Draft summarized");
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to summarize");
     } finally {
       setAiLoading(false);

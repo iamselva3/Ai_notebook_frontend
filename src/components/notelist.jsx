@@ -2,30 +2,23 @@ import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import { toast } from "react-toastify";
 
-type Note = {
-  _id: string;
-  title: string;
-  content: string;
-  createdAt?: string;
-};
-
-export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate: () => void }) {
-  const [summaries, setSummaries] = useState<Record<string, string>>({});
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+export default function NotesList({ notes, onUpdate }) {
+  const [summaries, setSummaries] = useState({});
+  const [loadingId, setLoadingId] = useState(null);
+  const [expandedNotes, setExpandedNotes] = useState({});
+  const [editingNoteId, setEditingNoteId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [deletingNoteId, setDeletingNoteId] = useState(null);
 
-  const toggleExpand = (noteId: string) => {
+  const toggleExpand = (noteId) => {
     setExpandedNotes(prev => ({
       ...prev,
       [noteId]: !prev[noteId]
     }));
   };
 
-  const summarize = async (note: Note) => {
+  const summarize = async (note) => {
     if (note.content.trim().length < 20) {
       toast.warning("Note must be at least 20 characters to summarize");
       return;
@@ -34,7 +27,7 @@ export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate
     try {
       setLoadingId(note._id);
 
-      const res = await apiFetch<any>("/deepai/summary", {
+      const res = await apiFetch("/deepai/summary", {
         method: "POST",
         body: JSON.stringify({ content: note.content }),
       });
@@ -47,14 +40,14 @@ export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate
       }));
 
       toast.success("Summary generated successfully");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to generate summary");
     } finally {
       setLoadingId(null);
     }
   };
 
-  const startEdit = (note: Note) => {
+  const startEdit = (note) => {
     setEditingNoteId(note._id);
     setEditTitle(note.title);
     setEditContent(note.content);
@@ -66,7 +59,7 @@ export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate
     setEditContent("");
   };
 
-  const saveEdit = async (noteId: string) => {
+  const saveEdit = async (noteId) => {
     if (!editTitle.trim() || !editContent.trim()) {
       toast.warning("Title and content are required");
       return;
@@ -88,14 +81,14 @@ export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate
       setEditTitle("");
       setEditContent("");
       onUpdate(); // Refresh the notes list
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to update note");
     } finally {
       setLoadingId(null);
     }
   };
 
-  const deleteNote = async (noteId: string) => {
+  const deleteNote = async (noteId) => {
     if (!window.confirm("Are you sure you want to delete this note?")) {
       return;
     }
@@ -105,18 +98,18 @@ export default function NotesList({ notes, onUpdate }: { notes: Note[], onUpdate
       
       await apiFetch(`/notes/${noteId}`, {
         method: "DELETE",
-      });
+        });
 
       toast.success("Note deleted successfully");
       onUpdate(); // Refresh the notes list
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Failed to delete note");
     } finally {
       setDeletingNoteId(null);
     }
   };
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
